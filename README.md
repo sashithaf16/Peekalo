@@ -15,7 +15,8 @@ The client is a barebones implementation using HTML, CSS, and JavaScript. The pr
 
 ### Steps
 
-Navigate to the root directory where the docker-compose.yml is present
+Navigate to the root directory where the docker-compose.yml is present.
+
 Build and start the application using Docker Compose:
 
 ```bash
@@ -67,7 +68,7 @@ Analyzes the given web page URL.
 }
 ```
 
-Responses
+Response:
 ***200 OK***
 
 ```json
@@ -97,6 +98,8 @@ Responses
 ***400 Bad Request***
 For client side errors where validations fail, such as invalid payload.
 
+Response:
+
 ```json
 {
     "success": false,
@@ -107,6 +110,8 @@ For client side errors where validations fail, such as invalid payload.
 ***500 Internal Server Error***
 
 Errors when processing a validated request.
+
+Response:
 
 ```json
 {
