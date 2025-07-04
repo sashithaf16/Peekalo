@@ -29,7 +29,6 @@ func newHTTPResponse(body string, statusCode int) *http.Response {
 }
 
 func TestAnalyzeURLHandler_WithMockHTTPClient(t *testing.T) {
-	// Setup real config and logger (you might want to customize these)
 	cfg := &config.Config{
 		LogLevel: "debug",
 	}
@@ -42,7 +41,6 @@ func TestAnalyzeURLHandler_WithMockHTTPClient(t *testing.T) {
 		urlToAnalyze := "https://example.com"
 		reqBody := `{"url":"` + urlToAnalyze + `"}`
 
-		// Mock HTTP client to return some HTML for analyzer to parse
 		mockResponseBody := `<html><head><title>Example Domain</title></head><body>Example Description</body></html>`
 		mockHTTPClient.On("Do", mock.AnythingOfType("*http.Request")).Return(
 			newHTTPResponse(mockResponseBody, 200),

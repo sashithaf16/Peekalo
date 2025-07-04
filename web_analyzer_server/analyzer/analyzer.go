@@ -235,13 +235,11 @@ func (a *Analyzer) getLinkStats(ctx context.Context, doc *html.Node, ch chan<- L
 					break
 				}
 
-				// Resolve relative or protocol-relative URLs
 				resolved := baseURL.ResolveReference(linkURL)
 
 				scheme := strings.ToLower(resolved.Scheme)
 				switch scheme {
 				case "http", "https":
-					// Compare normalized hosts
 					if strings.EqualFold(resolved.Host, baseURL.Host) {
 						stats.Internal++
 					} else {
@@ -251,7 +249,7 @@ func (a *Analyzer) getLinkStats(ctx context.Context, doc *html.Node, ch chan<- L
 					stats.Inaccessible++
 				}
 
-				break // Only handle the first href per <a>
+				break
 			}
 		}
 

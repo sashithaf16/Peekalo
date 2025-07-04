@@ -75,7 +75,6 @@ func TestAnalyzeURL_ErrorFetchingURL(t *testing.T) {
 	logger := logger.CreateLogger(mockCfg.LogLevel)
 	mockClient := new(mocks.MockHTTPClient)
 
-	// Return typed nil *http.Response to avoid panic in type assertion
 	mockClient.On("Do", mock.Anything).Return((*http.Response)(nil), errors.New("mocked network error"))
 
 	an := NewAnalyzer(logger, mockCfg, mockClient)
