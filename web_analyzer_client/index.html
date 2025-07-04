@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Web Metadata Extractor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #loading {
+      display: none;
+      color: #555;
+      font-style: italic;
+    }
+
+    #result {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Enter a URL to Analyze</h2>
+  <form id="urlForm">
+    <input type="text" id="urlInput" placeholder="https://example.com" required />
+    <button type="submit">Analyze</button>
+  </form>
+
+  <div id="loading">Loading...</div>
+  <pre id="result"></pre>
+
+  <script>
+    const form = document.getElementById('urlForm');
+    const urlInput = document.getElementById('urlInput');
+    const result = document.getElementById('result');
+    const loading = document.getElementById('loading');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      result.textContent = '';
+      loading.style.display = 'block';
+
+      const url = urlInput.value;
+
+      try {
+        const response = await fetch('http://localhost:8080/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!response.ok) {
+          const contentType = response.headers.get("content-type");
+          let errorMessage = `Server error: ${response.status}`;
+
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            if (errorData.error) {
+              errorMessage += ` - ${errorData.error}`;
+            }
+          } else {
+            const text = await response.text();
+            errorMessage += ` - ${text}`;
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.textContent = `Error: ${error.message}`;
+      } finally {
+        loading.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+
+</html>
