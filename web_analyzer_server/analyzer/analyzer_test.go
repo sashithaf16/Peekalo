@@ -85,3 +85,45 @@ func TestAnalyzeURL_ErrorFetchingURL(t *testing.T) {
 	expectedErr := "failed to fetch URL: mocked network error"
 	assert.EqualError(t, err, expectedErr, "unexpected error message")
 }
+
+func TestAnalyzeURL_SocialLoginDetected(t *testing.T) {
+	mockHTML := `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>Social Login Test</title>
+		</head>
+		<body>
+			<form action="/login">
+				<a href="#" class="btn google">Login with Google</a>
+			</form>
+		</body>
+		</html>
+	`
+
+	// Setup mock HTTP client
+	mockClient := new(mocks.MockHTTPClient)
+	mockResp := &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(bytes.NewBufferString(mockHTML)),
+	}
+	mockClient.On("Do", mock.Anything).Return(mockResp, nil)
+
+	// Initialize analyzer with mocks
+	cfg := &config.Config{
+		LogLevel: "debug",
+	}
+	log := logger.CreateLogger(cfg.LogLevel)
+	an := NewAnalyzer(log, cfg, mockClient)
+
+	// Run AnalyzeURL
+	ctx := context.Background()
+	result, err := an.AnalyzeURL(ctx, "http://example.com")
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, "Social Login Test", result.Title)
+	assert.True(t, result.HasLogin, "Expected HasLogin to be true for social login anchor")
+
+	mockClient.AssertExpectations(t)
+}
