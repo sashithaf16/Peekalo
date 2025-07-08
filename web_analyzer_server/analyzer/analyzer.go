@@ -96,10 +96,8 @@ func (a *Analyzer) getHeadingsCount(ctx context.Context, doc *html.Node, ch chan
 	a.logger.Debug().Msg("Analyzing headings count")
 	defer wg.Done()
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	default:
 	}
 
 	headings := map[string]int{
@@ -118,20 +116,18 @@ func (a *Analyzer) getHeadingsCount(ctx context.Context, doc *html.Node, ch chan
 	}
 	traverse(doc)
 	// Only send if context is still active
-	select {
-	case <-ctx.Done():
+
+	if isCancelled(ctx) {
 		return
-	case ch <- headings:
 	}
+	ch <- headings
 }
 
 func (a *Analyzer) getPageTitle(ctx context.Context, doc *html.Node, ch chan<- string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	default:
 	}
 
 	// Find the <head> node
@@ -158,21 +154,18 @@ func (a *Analyzer) getPageTitle(ctx context.Context, doc *html.Node, ch chan<- s
 		}
 	}
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	case ch <- title:
 	}
+	ch <- title
 }
 
 func (a *Analyzer) getHTMLVersion(ctx context.Context, doc *html.Node, ch chan<- string, wg *sync.WaitGroup) {
 	a.logger.Debug().Msg("Analyzing HTML version")
 	defer wg.Done()
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	default:
 	}
 
 	version := "Unknown"
@@ -194,12 +187,10 @@ func (a *Analyzer) getHTMLVersion(ctx context.Context, doc *html.Node, ch chan<-
 		}
 	}
 
-	// Only send if context is still active
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	case ch <- version:
 	}
+	ch <- version
 
 }
 
@@ -207,10 +198,8 @@ func (a *Analyzer) getLinkStats(ctx context.Context, doc *html.Node, ch chan<- L
 	a.logger.Debug().Msg("Analyzing link statistics")
 	defer wg.Done()
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	default:
 	}
 
 	var stats LinkStats
@@ -259,46 +248,108 @@ func (a *Analyzer) getLinkStats(ctx context.Context, doc *html.Node, ch chan<- L
 	}
 
 	traverse(doc)
-	// Only send if context is still active
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	case ch <- stats:
 	}
+	ch <- stats
 }
 
+// logic - Looks for a <form> element with either a password input or a link containing "login" text
+// html reference - https://www.w3schools.com/howto/howto_css_social_login.asp
 func (a *Analyzer) detectLoginForm(ctx context.Context, doc *html.Node, ch chan<- bool, wg *sync.WaitGroup) {
-	a.logger.Debug().Msg("Detecting login form")
 	defer wg.Done()
 
-	select {
-	case <-ctx.Done():
+	if isCancelled(ctx) {
 		return
-	default:
 	}
 
-	found := false
+	var found bool
 
 	var traverse func(*html.Node)
 	traverse = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "input" {
-			for _, attr := range n.Attr {
-				if attr.Key == "type" && strings.ToLower(attr.Val) == "password" {
-					found = true
-					return
-				}
+		if found || n == nil {
+			return
+		}
+
+		if n.Type == html.ElementNode && n.Data == "form" {
+			if containsPasswordInput(n) || containsLoginAnchor(n) {
+				found = true
+				return
 			}
 		}
+
 		for c := n.FirstChild; c != nil && !found; c = c.NextSibling {
 			traverse(c)
 		}
 	}
 	traverse(doc)
 
-	// Only send if context is still active
+	if isCancelled(ctx) {
+		return
+	}
+	ch <- found
+}
+
+func containsPasswordInput(n *html.Node) bool {
+	var found bool
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if found || node == nil {
+			return
+		}
+		if node.Type == html.ElementNode && node.Data == "input" {
+			for _, attr := range node.Attr {
+				if attr.Key == "type" && strings.EqualFold(attr.Val, "password") {
+					found = true
+					return
+				}
+			}
+		}
+		for c := node.FirstChild; c != nil && !found; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(n)
+	return found
+}
+
+func containsLoginAnchor(n *html.Node) bool {
+	var found bool
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if found || node == nil {
+			return
+		}
+		if node.Type == html.ElementNode && node.Data == "a" {
+			if strings.Contains(strings.ToLower(getText(node)), "login") || strings.Contains(strings.ToLower(getText(node)), "sign in") || strings.Contains(strings.ToLower(getText(node)), "continue with") {
+				found = true
+				return
+			}
+		}
+		for c := node.FirstChild; c != nil && !found; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(n)
+	return found
+}
+
+func getText(n *html.Node) string {
+	if n.Type == html.TextNode {
+		return n.Data
+	}
+	var sb strings.Builder
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		sb.WriteString(getText(c))
+	}
+	return sb.String()
+}
+
+func isCancelled(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
-		return
-	case ch <- found:
+		return true
+	default:
+		return false
 	}
 }
