@@ -1,19 +1,22 @@
 # Peekalo - Web Page Analyzer
 
+## Project overview 
 This repository contains both the client and server components of a web page analyzer. It analyzes a given web page URL and returns structural and semantic details.
 
 ![image](https://github.com/user-attachments/assets/0df1fcdd-979d-41cf-9bfd-1cb45bf5f6a1)
 
-
-The client is a barebones implementation using HTML, CSS, and JavaScript. The primary focus was on the server, written in Go. See the Server Documentation section for more details on endpoints and functionality.
+## Technology used
+- Client - Implemented using HTML, CSS, and JavaScript
+- Server - Implemented in Go. See the Server Documentation section for more details on endpoints and functionality.
 
 ## Running the Solution Locally
 
 ### Prerequisites
 - Docker installed
-- Go installed (if building the server from source)
+- Go installed (if building the server from source, not mandatory to run the solution via Docker)
 
-### Steps
+### Docker Deployment
+#### To run both the client and server via docker compose - Recommened
 
 Navigate to the root directory where the docker-compose.yml is present.
 
@@ -27,8 +30,58 @@ docker-compose up --build
 
 - The server will be running at: http://localhost:8080
 
+#### To build client and server inidividually via Docker
+
+##### For Client
+
+Navigate to the client directory
+`cd .\Peekalo\web_analyzer_client\`
+
+Build the client container
+`docker build -t client-app .`
+
+Run the client container
+`docker run --rm -p 5000:8080 client-app`
+(Runs the client container on localhost:5000)  
+    
+##### For Server
+
+Navigate to the server directory
+`cd .\Peekalo\web_analyzer_server\`
+
+Build the server container
+`docker build -t server-app .`
+
+Run the server container
+`docker run --rm -p 8080:8080 server-app`
+(Runs the server container on localhost:8080)
 
 ## Server Documentation
+
+### Directory pattern for Backend
+
+```
+web_analyzer/
+└── web_analyzer_server/
+    ├── Dockerfile
+    ├── _mocks/
+    │   └── mock_http_client.go
+    ├── analyzer/
+    │   ├── analyzer_test.go
+    │   └── analyzer.go
+    ├── config/
+    │   └── config.go
+    ├── handler/
+    │   ├── analyze_handler_test.go
+    │   └── analyze.go
+    ├── logger/
+    │   └── logger.go
+    ├── metrics/
+    │   └── metrics.go
+    ├── go.mod
+    ├── go.sum
+    └── main.go
+```
 
 ### Features
 - Analyze the HTML version of a web page
@@ -144,6 +197,14 @@ The GET /metrics endpoint exposes the following Prometheus counters, which instr
 ### Config
 Currently set via the `config.go`. External configurations have not been specified yet.
 
+### Test coverage
+
+Check into the server directory
+`cd .\Peekalo\web_analyzer_server\`
+
+Run the go test command
+`go test -cover ./... `
+
 ### Third-party Packages
 - `github.com/go-chi`: Middleware, enabling CORS and routing
 - `github.com/go-playground/validator/v10`: Struct validation
@@ -153,7 +214,7 @@ Currently set via the `config.go`. External configurations have not been specifi
 - `github.com/stretchr/testify`: Support for unit testing - assertions, mocking.
 
 
-Future Improvements
+## Future Improvements
 - Implement response caching with configurable Time-To-Live (TTL) values.
 - Enhance overall configurability for greater flexibility. (context deadlines for http client etc.)
 - Offload heavy processing to a separate worker via Kafka to ensure the API can handle larger request volumes efficiently.
